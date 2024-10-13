@@ -1,0 +1,16 @@
+{
+  "name": "kbj-its-2024",
+  "version": "1.0.0",
+  "description": "Repository proyek untuk mata kuliah Komputasi Berbasis Jaringan kelas Pascasarjana Teknik Informatika semester genap 2024/2025",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.21.1",
+    "faker": "^5.5.3"
+  }
+}
