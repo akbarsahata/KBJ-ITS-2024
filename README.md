@@ -20,7 +20,7 @@ Memulai groundwork untuk menciptakan alat bantu bagi tim QA dan tim Cyber Securi
 
 - [Google Collab](https://colab.research.google.com/drive/1HreKAZrolzMK7FqonsNOzitsPojECnFZ?usp=sharing)
 
-- [Systematic Literature Review](https://1drv.ms/w/s!AjkidNGp54V6iqdIlo5BHOg_UP4BbQ?e=GLSdWr)
+- [Critical Literature Review](https://1drv.ms/w/s!AjkidNGp54V6iqdIlo5BHOg_UP4BbQ?e=GLSdWr)
 
 - [Presentation](https://1drv.ms/b/s!AjkidNGp54V6iqdJ3F4sZbTqd4ehHQ?e=sl7hSD)
 
