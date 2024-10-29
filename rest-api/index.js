@@ -530,19 +530,6 @@ function generateMedicalRecordValue(key) {
   }
 }
 
-// Flatten nested JSON objects for easier processing
-function flattenObject(obj, parent = "", res = {}) {
-  for (let key in obj) {
-    let propName = parent ? `${parent}.${key}` : key;
-    if (typeof obj[key] === "object" && obj[key] !== null) {
-      flattenObject(obj[key], propName, res);
-    } else {
-      res[propName] = obj[key];
-    }
-  }
-  return res;
-}
-
 // Randomly decide if a value should be plain or hashed
 function randomizeValue(value, isPii) {
   if (!isPii) return [value, 0]; // Marker 0 for non-PII data
@@ -594,7 +581,8 @@ function generateArbitraryJson(depth = 2, context = "default") {
 app.get("/*", (req, res) => {
   const contexts = ["user_profile", "e_commerce", "medical_record", "default"];
   const context = contexts[Math.floor(Math.random() * contexts.length)];
-  const { json, resultTuples } = generateArbitraryJson(2, context);
+  const depth = Math.floor(Math.random() * 3) + 2;
+  const { json, resultTuples } = generateArbitraryJson(depth, context);
 
   res.json({
     requestPath: req.path,
