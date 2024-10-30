@@ -1,9 +1,19 @@
 const express = require("express");
 const faker = require("faker");
+var couchbase = require("couchbase");
 const sha1 = require("sha1");
+const crypto = require("crypto");
 
 const app = express();
 const port = 3000;
+
+// User inputs
+const clusterConnStr = "couchbases://cb.fwv7ap3llosvz7pp.cloud.couchbase.com"; // Replace this with Connection String
+const username = "kbj2024"; // Replace this with username from cluster access credentials
+const password = "kbj!TS2024"; // Replace this with password from cluster access credentials
+const bucketName = "kbj";
+const scopeName = "kbj";
+const collectionName = "logs";
 
 // Function to convert snake_case to camelCase
 function snakeToCamel([snakeStr, context]) {
@@ -325,9 +335,11 @@ function getRandomizedKeys() {
 }
 
 // get english keys from indonesia keys
-function getEnglishKeys(key, keys) {
+function getEnglishKeys(key, keys, isPiiKey = true) {
   const index = keys.findIndex((element) => element[0] === key);
-  return keys[index][0];
+  return isPiiKey
+    ? piiKeysCamelCaseEn[index][0]
+    : nonPiiKeysCamelCaseEn[index][0];
 }
 
 // Context-aware value generation
@@ -445,7 +457,12 @@ function generateUserProfileValue(key) {
     case "citizenship":
       return faker.address.country();
     case "marital_status":
-      return faker.random.arrayElement(["Single", "Married", "Divorced", "Widowed"]);
+      return faker.random.arrayElement([
+        "Single",
+        "Married",
+        "Divorced",
+        "Widowed",
+      ]);
     case "insurance":
     case "insurance_number":
     case "policy_number":
@@ -551,13 +568,16 @@ function generateArbitraryJson(depth = 2, context = "default") {
     const isPiiKey = Math.random() > 0.5;
     const piiKeyIndex = Math.floor(Math.random() * piiKeys.length);
     const nonPiiKeyIndex = Math.floor(Math.random() * nonPiiKeys.length);
-    const [key, context] = isPiiKey ? piiKeys[piiKeyIndex] : nonPiiKeys[nonPiiKeyIndex];
+    const [key, context] = isPiiKey
+      ? piiKeys[piiKeyIndex]
+      : nonPiiKeys[nonPiiKeyIndex];
 
     // Generate nested structure randomly
     let currentObj = json;
     let nestedKeys = [];
     for (let j = 0; j < depth && Math.random() > 0.5; j++) {
-      const nestedKey = nonPiiKeys[Math.floor(Math.random() * nonPiiKeys.length)][0];
+      const nestedKey =
+        nonPiiKeys[Math.floor(Math.random() * nonPiiKeys.length)][0];
       nestedKeys.push(nestedKey);
       currentObj[nestedKey] = currentObj[nestedKey] || {};
       currentObj = currentObj[nestedKey];
@@ -566,7 +586,11 @@ function generateArbitraryJson(depth = 2, context = "default") {
     nestedKeys.push(key);
 
     // Generate value based on context
-    const value = generateContextualValue([key, context], useIndonesian, isPiiKey ? piiKeys : nonPiiKeys);
+    const value = generateContextualValue(
+      [key, context],
+      useIndonesian,
+      isPiiKey ? piiKeys : nonPiiKeys
+    );
     const [finalValue, marker] = randomizeValue(value, isPiiKey);
 
     // Assign the value and marker to the generated key path
@@ -584,15 +608,43 @@ app.get("/*", (req, res) => {
   const depth = Math.floor(Math.random() * 3) + 2;
   const { json, resultTuples } = generateArbitraryJson(depth, context);
 
-  res.json({
-    requestPath: req.path,
-    headers: req.headers,
-    data: json,
-    keyValueLabels: resultTuples,
-  });
+  const logId = crypto.randomUUID();
+
+  // Get a reference to the cluster
+  couchbase
+    .connect(clusterConnStr, {
+      username: username,
+      password: password,
+      // Use the pre-configured profile below to avoid latency issues with your connection.
+      configProfile: "wanDevelopment",
+    })
+    .then((cluster) => cluster.bucket(bucketName))
+    .then((bucket) => bucket.scope(scopeName).collection(collectionName))
+    .then((collection) =>
+      collection.insert(logId, {
+        requestPath: req.path,
+        headers: req.headers,
+        data: json,
+        keyValueLabels: resultTuples,
+      })
+    )
+    .then(() => {
+      res.json({
+        data: json,
+        keyValueLabels: resultTuples,
+      });
+    })
+    .catch((error) => {
+      console.error(error);
+      res.status(500).send("An error occurred");
+    });
 });
 
 // Start the server
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
-});
+if (process.env.NODE_ENV === "local") {
+  app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
+  });
+}
+
+module.exports = app;
