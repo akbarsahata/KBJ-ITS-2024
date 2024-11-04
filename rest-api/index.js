@@ -1,3 +1,8 @@
+if (process.env.NODE_ENV === "local") {
+  console.log("Loading environment variables from .env file");
+  require("dotenv").config();
+}
+
 const express = require("express");
 const faker = require("faker");
 var couchbase = require("couchbase");
@@ -5,15 +10,14 @@ const sha1 = require("sha1");
 const crypto = require("crypto");
 
 const app = express();
-const port = 3000;
 
 // User inputs
-const clusterConnStr = "couchbases://cb.fwv7ap3llosvz7pp.cloud.couchbase.com"; // Replace this with Connection String
-const username = "kbj2024"; // Replace this with username from cluster access credentials
-const password = "kbj!TS2024"; // Replace this with password from cluster access credentials
-const bucketName = "kbj";
-const scopeName = "kbj";
-const collectionName = "logs";
+const clusterConnStr = process.env.COUCHBASE_CLUSTER_CONN_STR;
+const username = process.env.COUCHBASE_USERNAME;
+const password = process.env.COUCHBASE_PASSWORD;
+const bucketName = process.env.COUCHBASE_BUCKET_NAME;
+const scopeName = process.env.COUCHBASE_SCOPE_NAME;
+const collectionName = process.env.COUCHBASE_COLLECTION_NAME;
 
 // Function to convert snake_case to camelCase
 function snakeToCamel([snakeStr, context]) {
@@ -602,7 +606,7 @@ function generateArbitraryJson(depth = 2, context = "default") {
 }
 
 // Define a route to generate arbitrary JSON with optional context
-app.get("/*", (req, res) => {
+app.get("/*", async (req, res) => {
   const contexts = ["user_profile", "e_commerce", "medical_record", "default"];
   const context = contexts[Math.floor(Math.random() * contexts.length)];
   const depth = Math.floor(Math.random() * 3) + 2;
@@ -611,23 +615,24 @@ app.get("/*", (req, res) => {
   const logId = crypto.randomUUID();
 
   // Get a reference to the cluster
-  couchbase
-    .connect(clusterConnStr, {
-      username: username,
-      password: password,
-      // Use the pre-configured profile below to avoid latency issues with your connection.
-      configProfile: "wanDevelopment",
+  const cluster = await couchbase.connect(clusterConnStr, {
+    username: username,
+    password: password,
+    // Use the pre-configured profile below to avoid latency issues with your connection.
+    configProfile: "wanDevelopment",
+  });
+
+  await cluster
+    .bucket(bucketName)
+    .scope(scopeName)
+    .collection(collectionName)
+    .insert(logId, {
+      requestPath: req.path,
+      headers: req.headers,
+      data: json,
+      keyValueLabels: resultTuples,
     })
-    .then((cluster) => cluster.bucket(bucketName))
-    .then((bucket) => bucket.scope(scopeName).collection(collectionName))
-    .then((collection) =>
-      collection.insert(logId, {
-        requestPath: req.path,
-        headers: req.headers,
-        data: json,
-        keyValueLabels: resultTuples,
-      })
-    )
+    .then(() => cluster.close())
     .then(() => {
       res.json({
         data: json,
@@ -642,6 +647,7 @@ app.get("/*", (req, res) => {
 
 // Start the server
 if (process.env.NODE_ENV === "local") {
+  const port = 3000;
   app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
   });
