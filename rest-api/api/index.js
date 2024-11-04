@@ -605,6 +605,10 @@ function generateArbitraryJson(depth = 2, context = "default") {
   return { json, resultTuples };
 }
 
+app.get("/", (req, res) => {
+  res.send("Hello, World!");
+});
+
 // Define a route to generate arbitrary JSON with optional context
 app.get("/*", async (req, res) => {
   const contexts = ["user_profile", "e_commerce", "medical_record", "default"];
