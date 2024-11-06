@@ -596,6 +596,12 @@ function generateArbitraryJson(depth = 2, context = "default") {
   return { json, resultTuples };
 }
 
+app.use((req, res, next) => {
+  if(req.headers["x-api-key"] !== process.env.API_KEY) {
+    res.status(401).send("Unauthorized");
+  }
+})
+
 app.get("/", (req, res) => {
   res.send("Hello, World!");
 });
