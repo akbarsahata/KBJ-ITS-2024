@@ -5,19 +5,10 @@ if (process.env.NODE_ENV === "local") {
 
 const express = require("express");
 const faker = require("faker");
-var couchbase = require("couchbase");
+const mongodb = require("mongodb");
 const sha1 = require("sha1");
-const crypto = require("crypto");
 
 const app = express();
-
-// User inputs
-const clusterConnStr = process.env.COUCHBASE_CLUSTER_CONN_STR;
-const username = process.env.COUCHBASE_USERNAME;
-const password = process.env.COUCHBASE_PASSWORD;
-const bucketName = process.env.COUCHBASE_BUCKET_NAME;
-const scopeName = process.env.COUCHBASE_SCOPE_NAME;
-const collectionName = process.env.COUCHBASE_COLLECTION_NAME;
 
 // Function to convert snake_case to camelCase
 function snakeToCamel([snakeStr, context]) {
@@ -605,6 +596,12 @@ function generateArbitraryJson(depth = 2, context = "default") {
   return { json, resultTuples };
 }
 
+app.use((req, res, next) => {
+  if(req.headers["x-api-key"] !== process.env.API_KEY) {
+    res.status(401).send("Unauthorized");
+  }
+})
+
 app.get("/", (req, res) => {
   res.send("Hello, World!");
 });
@@ -616,37 +613,26 @@ app.get("/*", async (req, res) => {
   const depth = Math.floor(Math.random() * 3) + 2;
   const { json, resultTuples } = generateArbitraryJson(depth, context);
 
-  const logId = crypto.randomUUID();
+    const mongoClient = new mongodb.MongoClient(process.env.MONGODB_URI);
 
-  // Get a reference to the cluster
-  const cluster = await couchbase.connect(clusterConnStr, {
-    username: username,
-    password: password,
-    // Use the pre-configured profile below to avoid latency issues with your connection.
-    configProfile: "wanDevelopment",
-  });
+    await mongoClient.connect();
 
-  await cluster
-    .bucket(bucketName)
-    .scope(scopeName)
-    .collection(collectionName)
-    .insert(logId, {
+    const db = mongoClient.db("logs");
+
+    const collection = db.collection("logs");
+
+    const log = {
       requestPath: req.path,
       headers: req.headers,
       data: json,
       keyValueLabels: resultTuples,
-    })
-    .then(() => cluster.close())
-    .then(() => {
-      res.json({
-        data: json,
-        keyValueLabels: resultTuples,
-      });
-    })
-    .catch((error) => {
-      console.error(error);
-      res.status(500).send("An error occurred");
-    });
+    };
+
+    await collection.insertOne(log);
+
+    await mongoClient.close();
+
+    res.json(json);
 });
 
 // Start the server
