@@ -1,0 +1,40 @@
+json = {}
+
+{ piiKeys, nonPiiKeys, useIndonesian } = getRandomizedKeys()
+
+keyCount = random integer 1 to 5
+
+for i from 0 to keyCount - 1 do
+    isPiiKey = random boolean
+    if isPiiKey then
+        [key, context] = piiKeys[random index within piiKeys]
+    else
+        [key, context] = nonPiiKeys[random index within nonPiiKeys]
+    end if
+
+    currentObj = json
+
+    for j from 0 to depth - 1 do
+        if random boolean then
+            nestedKey = nonPiiKeys[random index within nonPiiKeys]
+            nestedKeys.append(nestedKey)
+
+            if nestedKey not in currentObj then
+                currentObj[nestedKey] = {}
+            end if
+
+            currentObj = currentObj[nestedKey]
+        else
+            break
+        end if
+    end for
+
+    nestedKeys.append(key)
+
+    value = generateContextualValue([key, context], useIndonesian, isPiiKey ? piiKeys : nonPiiKeys)
+    finalValue = randomizeValue(value, isPiiKey)
+
+    currentObj[key] = finalValue
+end for
+
+return json

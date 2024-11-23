@@ -597,13 +597,13 @@ function generateArbitraryJson(depth = 2, context = "default") {
 }
 
 app.use((req, res, next) => {
-  if(req.headers["x-api-key"] !== process.env.API_KEY) {
+  if (req.headers["x-api-key"] !== process.env.API_KEY) {
     res.status(401).send("Unauthorized");
 
     return;
   }
   next();
-})
+});
 
 app.get("/", (req, res) => {
   res.send("Hello, World!");
@@ -616,26 +616,39 @@ app.get("/*", async (req, res) => {
   const depth = Math.floor(Math.random() * 3) + 2;
   const { json, resultTuples } = generateArbitraryJson(depth, context);
 
-    const mongoClient = new mongodb.MongoClient(process.env.MONGODB_URI);
+  const mongoClient = new mongodb.MongoClient(process.env.MONGODB_URI);
 
-    await mongoClient.connect();
+  await mongoClient.connect();
 
-    const db = mongoClient.db("logs");
+  const db = mongoClient.db("logs");
 
-    const collection = db.collection("logs");
+  const collection = db.collection("logs");
 
-    const log = {
-      requestPath: req.path,
-      headers: req.headers,
-      data: json,
-      keyValueLabels: resultTuples,
-    };
+  const log = {
+    requestPath: req.path,
+    headers: req.headers,
+    data: json,
+    keyValueLabels: resultTuples,
+  };
 
-    await collection.insertOne(log);
+  await Promise.all([
+    collection.insertOne(log),
+    fetch(process.env.ML_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        requestPath: req.path,
+        headers: req.headers,
+        data: json,
+      }),
+    }),
+  ]);
 
-    await mongoClient.close();
+  await mongoClient.close();
 
-    res.json(json);
+  res.json(json);
 });
 
 // Start the server
