@@ -257,6 +257,7 @@ const piiKeysSnakeCaseId = [
   ["telepon_darurat", "user_profile"],
   ["nama_kontak_darurat", "user_profile"],
 ];
+
 const piiKeysCamelCaseId = piiKeysSnakeCaseId.map(snakeToCamel);
 
 const nonPiiKeysSnakeCaseId = [
@@ -596,14 +597,14 @@ function generateArbitraryJson(depth = 2, context = "default") {
   return { json, resultTuples };
 }
 
-app.use((req, res, next) => {
-  if (req.headers["x-api-key"] !== process.env.API_KEY) {
-    res.status(401).send("Unauthorized");
+// app.use((req, res, next) => {
+//   if (req.headers["x-api-key"] !== process.env.API_KEY) {
+//     res.status(401).send("Unauthorized");
 
-    return;
-  }
-  next();
-});
+//     return;
+//   }
+//   next();
+// });
 
 app.get("/", (req, res) => {
   res.send("Hello, World!");
@@ -616,13 +617,13 @@ app.get("/*", async (req, res) => {
   const depth = Math.floor(Math.random() * 3) + 2;
   const { json, resultTuples } = generateArbitraryJson(depth, context);
 
-  const mongoClient = new mongodb.MongoClient(process.env.MONGODB_URI);
+  // const mongoClient = new mongodb.MongoClient(process.env.MONGODB_URI);
 
-  await mongoClient.connect();
+  // await mongoClient.connect();
 
-  const db = mongoClient.db("logs");
+  // const db = mongoClient.db("logs");
 
-  const collection = db.collection("logs");
+  // const collection = db.collection("logs");
 
   const log = {
     requestPath: req.path,
@@ -631,30 +632,31 @@ app.get("/*", async (req, res) => {
     keyValueLabels: resultTuples,
   };
 
-  await Promise.all([
-    collection.insertOne(log),
-    fetch(process.env.ML_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        requestPath: req.path,
-        headers: req.headers,
-        data: json,
-      }),
-    }),
-  ]);
+  // await Promise.all([
+  //   collection.insertOne(log),
+  //   fetch(process.env.ML_API_URL, {
+  //     method: "POST",
+  //     headers: {
+  //       "Content-Type": "application/json",
+  //     },
+  //     body: JSON.stringify({
+  //       requestPath: req.path,
+  //       headers: req.headers,
+  //       data: json,
+  //     }),
+  //   }),
+  // ]);
 
-  await mongoClient.close();
+  // await mongoClient.close();
 
-  res.json(json);
+  res.json(log);
 });
 
 // Start the server
 if (process.env.NODE_ENV === "local") {
   const port = 3000;
   app.listen(port, () => {
+    console.log(process.pid);
     console.log(`Server running at http://localhost:${port}`);
   });
 }
