@@ -12,11 +12,15 @@ Repository proyek untuk kelas Pascasarjana Teknik Informatika semester genap 202
 
 ### REST API
 
-Custom REST API yang digunakan untuk men-generate dataset
+Custom REST API yang digunakan untuk men-generate dataset. REST API di-deploy di Paas bernama Vercel, sedangkan database MongoDB menggunakan PaaS bernama MongoDB Atlas.
 
 ### Requester Script
 
 Script Postman runner yang digunakan untuk mentrigger REST API dalam men-generate dataset
+
+### Dataset
+
+Dataset yang digunakan untuk men-training model Machine Learning pada project ini dapet ditemui pada file bernama `dataset.json`
 
 ## About Project
 
