@@ -1,6 +1,6 @@
 # KBJ-ITS-2024
 
-Repository proyek untuk kelas Pascasarjana Teknik Informatika semester genap 2024/2025
+Repository proyek untuk kelas Pascasarjana Teknik Informatika semester gasal 2024/2025
 
 ## Authors
 
